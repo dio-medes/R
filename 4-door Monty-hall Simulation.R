@@ -4,31 +4,27 @@
 # rm(list=ls()) here for convenience.
 
 # Contestant picks 1 door. Monty opens 2 doors. Find probability of swap win.
-# Don't expect much except in terms of syntax to change.
-# Going to try to clean up the result section.
+
+# Number of Simulations:
+n <- 100
+
+#Repeating code the better way
+do_once <- function()
+{
 
 choice <- sample(1:4,1)
 true <- sample(1:4,1)
 forbidden <- c(choice,true)
 canopen <- c(setdiff(1:4,forbidden))
 
-# Sample Function with correction again
-#BetterSample <- function(x){
-#  if (length(x) == 1){
-#    return(x)}
-#  else{ return(sample(x,2))
-#  }
-#}
-
 opened <- sample(canopen,2,replace = FALSE)
 swapdoor <- c(setdiff(1:4,c(choice,opened)))
 result <- swapdoor == true
 
-if (result == TRUE){
-  print("Swap worked, ez clap")
-  } else{
-     print("you got boomed")}
-
+}
+success <- sum(replicate(n,do_once())) # TRUE encoded as 1, FALSE as 0.
+prob<- success/n
+prob
 
 
 

@@ -23,7 +23,7 @@ opened_door <- samplefunction(allowed_doors) #Door that Monty opens
 swapped_door <- c(setdiff(c(1,2,3),c(opened_door,contestant)))
 swap_wins <- swapped_door == true_door #checks if swap worked
 r <- c(r,swap_wins)                    #appends the result of each repeat onto the r vector
-if (cnt > 200) {
+if (cnt > 20) {
    break
   }
 }
