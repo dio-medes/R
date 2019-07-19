@@ -28,3 +28,58 @@ s <- 10000
 g <- 23 #prob of at least one match is 0.5
 r <- replicate(s,max(tabulate(sample(365,g,replace=TRUE))))
 sum(r>=2)/s
+
+# Question 28.
+# What is the probability that a n-letter word is a palindrome?
+# This is straight forward to caluclate, though one has to consider
+# even and odd cases. Now I'm looking to simulate & confirm these calculations.
+
+# Number of simulations
+simnum <- 10^4
+
+# Number of letters
+num_let <- 2
+
+one_simulation <- function(){
+  word <- replicate(num_let,sample(letters,1))
+  if (num_let %% 2 == 0){                      # Even case
+    v <- (word[1:(num_let/2)]==word[num_let:((num_let/2)+1)])}
+    else {                                     # Odd case
+      v <- word[1:floor(num_let/2)]==word[num_let:(floor(num_let/2)+1)]
+    }
+  check <- sum(v)
+  check
+}  
+success = replicate(simnum,one_simulation())
+prob <- sprintf("%.10f",sum(success)/simnum)
+prob
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
