@@ -47,12 +47,19 @@ one_simulation <- function(){
     else {                                     # Odd case
       v <- word[1:floor(num_let/2)]==word[num_let:(floor(num_let/2)+1)]
     }
-  check <- sum(v)
-  check
+  check <- sum(v)                              # Checking for palindrome
+  if (num_let %% 2 == 0){                      # Even case
+    if (check==num_let/2){return(check)}
+    else{return(0)}
+  } else{                                      # Odd case
+    if (check==(num_let/2)-1){return(check)}
+    else{return(0)}
+  }
+ check 
 }  
 success = replicate(simnum,one_simulation())
-prob <- sprintf("%.10f",sum(success)/simnum)
-prob
+prob <- sprintf("%.10f",sum(success)/simnum) # Gives floating point to 10 decimal places
+prob                                         # As expected, for num_let = 2, prob approx = 0.0385
 
 
 
