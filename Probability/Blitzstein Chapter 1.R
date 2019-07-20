@@ -29,10 +29,10 @@ g <- 23 #prob of at least one match is 0.5
 r <- replicate(s,max(tabulate(sample(365,g,replace=TRUE))))
 sum(r>=2)/s
 
-# Question 28.
-# What is the probability that a n-letter word is a palindrome?
+### Question 28: What is the probability that a n-letter word is a palindrome? ###
+
 # This is straight forward to caluclate, though one has to consider
-# even and odd cases. Now I'm looking to simulate & confirm these calculations.
+# even and odd cases.
 
 # Number of simulations
 simnum <- 10^3
@@ -61,3 +61,31 @@ success = replicate(simnum,one_simulation())
 Sim_prob <- sprintf("%.10f",sum(success)/simnum) # Gives floating point to 10 decimal places
 true_prob <- 26^(ceiling(num_let/2))/26^(num_let)
 cat("The simulation resulted in ", Sim_prob," but the exact probability is ", true_prob,".",sep = '')
+
+### Question 33: 13-card hand, what is the probability of at least 3 of each suit. ###
+
+# Insight: having at least 3 of each suit is the same as having 4 of one suit and 3 of the others.
+
+# Number of simulations:
+sim_num <- 10^4
+
+# Number of cards in hand
+hand_size <- 13
+
+# One simulation
+one_simulation <- function(){
+  hand <- sample(1:52,13,replace = FALSE)
+  if(sum(sum(hand >= 1 & hand < 14)==union(3,4))==1){                     # Yikes, this is ugly.
+    if(sum(sum(hand > 13 & hand < 27)==union(3,4))==1){                   # I want to check if the sum of the logical vector
+      if(sum(sum(hand > 26 & hand < 40)==union(3,4))==1){                 # is equal to 3 OR 4. Can't get the OR operator to work.
+        if(sum(sum(hand > 39 & hand < 53)==union(3,4))==1){check <- 1}    # So, instead use union(), which returns a logical vector
+    else{check <- 0}                                                      # of length 2. THEN sum this vector. If it's 3 or 4, second
+  } else{check <- 0}                                                      # sum will be = 1. Then checks for this. There is 100% a 
+  } else{check <- 0}                                                      # cleaner way to do this with some logical operator.
+  } else{check <- 0}
+check
+}
+result <- replicate(sim_num,one_simulation())
+sim_prob <- sprintf("%.10f",sum(result)/sim_num) # Gives floating point to 10 decimal places
+true_prob <- 0.1054
+cat("The simulation resulted in ", sim_prob," but the exact probability is ", true_prob,".",sep = '')
