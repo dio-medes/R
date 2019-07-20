@@ -38,28 +38,28 @@ sum(r>=2)/s
 simnum <- 10^4
 
 # Number of letters
-num_let <- 2
+num_let <- 3
 
 one_simulation <- function(){
   word <- replicate(num_let,sample(letters,1))
   if (num_let %% 2 == 0){                      # Even case
     v <- (word[1:(num_let/2)]==word[num_let:((num_let/2)+1)])}
-    else {                                     # Odd case
-      v <- word[1:floor(num_let/2)]==word[num_let:(floor(num_let/2)+1)]
-    }
+  else {                                     # Odd case
+    v <- word[1:floor(num_let/2)]==word[num_let:ceiling(num_let/2+1)]
+  }
   check <- sum(v)                              # Checking for palindrome
   if (num_let %% 2 == 0){                      # Even case
     if (check==num_let/2){return(check)}
-    else{return(0)}
+    else{check <- 0}
   } else{                                      # Odd case
-    if (check==(num_let/2)-1){return(check)}
-    else{return(0)}
+    if (check==floor(num_let/2)){return(check)}
+    else{check <- 0}
   }
- check 
+  check 
 }  
 success = replicate(simnum,one_simulation())
 prob <- sprintf("%.10f",sum(success)/simnum) # Gives floating point to 10 decimal places
-prob                                         # As expected, for num_let = 2, prob approx = 0.0385
+prob                                   # As expected, for num_let = 2, prob approx = 0.0385
 
 
 
