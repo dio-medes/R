@@ -35,10 +35,10 @@ sum(r>=2)/s
 # even and odd cases. Now I'm looking to simulate & confirm these calculations.
 
 # Number of simulations
-simnum <- 10^4
+simnum <- 10^3
 
 # Number of letters
-num_let <- 3
+num_let <- 2
 
 one_simulation <- function(){
   word <- replicate(num_let,sample(letters,1))
@@ -58,35 +58,6 @@ one_simulation <- function(){
   check 
 }  
 success = replicate(simnum,one_simulation())
-prob <- sprintf("%.10f",sum(success)/simnum) # Gives floating point to 10 decimal places
-prob                                   # As expected, for num_let = 2, prob approx = 0.0385
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Sim_prob <- sprintf("%.10f",sum(success)/simnum) # Gives floating point to 10 decimal places
+true_prob <- 26^(ceiling(num_let/2))/26^(num_let)
+cat("The simulation resulted in ", Sim_prob," but the exact probability is ", true_prob,".",sep = '')
