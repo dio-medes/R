@@ -90,31 +90,40 @@ sim_prob <- sprintf("%.10f",sum(result)/sim_num) # Gives floating point to 10 de
 true_prob <- 0.1054
 cat("The simulation resulted in ", sim_prob," but the exact probability is ", true_prob,".",sep = '')
 
-### Question 32a: 5 card hand, simulating probability for flush ### 
+### Question 32a: 5 card hand, simulating probability for flush, but not Royal-flush ### 
 
 # Calculation:
-# true_prob <- 4*(choose(13,5))/choose(52,5)
+# true_prob <- 4*(choose(13,5)-1)/choose(52,5)
 
 # Simulation:
 
 # Number of simulations
-sim_num <- 10^3
+sim_num <- 10^4
 
-one_sim <- function(){
-hand <- sample(1:52,5,replace = FALSE)
-A <- cbind(c(1, 14, 27, 40), c(13, 26, 39, 52)) # Suit dividers
-
-flush <- function(i){ #Input element is called i inside the flush function.
-logical_vector <- i >= A[,1] & i <= A[,2] # Outputs a logical vector
-}
-results <- rbind(sapply(hand, flush))     # Row binds the output vector into a matrix
-check <- max(rowSums(results))==5
-check
+one_sim <- function(){ # Overall Simulation function
+  hand <- sample(1:52,5,replace = FALSE)
+  A <- cbind(c(1, 14, 27, 40), c(13, 26, 39, 52))            # Suit dividers
+  check <- (0)
+  
+not_royal <- function(v){                 # Function that runs on filtered hands, ie. non-royal-flush hands
+  flush <- function(i){                   #Input element is called i inside the flush function.
+      logical_vector <- i >= A[,1] & i <= A[,2] # Outputs a logical vector
+  }
+  results <- rbind(sapply(v, flush))      # Row binds the output vector into a matrix
+  check <- max(rowSums(results))==5
+  check <- sum(check)
+  return(check)                           # Ah, so that is how you build a function
+  }
+  
+  if (max(hand)-min(hand)==4 & (min(hand) %in% c(9,22,35,48))==TRUE) # Not Royal
+  {check <- 0} else{not_royal(hand)}
 }
 final_results <- replicate(sim_num,one_sim())
-sim_prob <- sprintf("%.10f",sum(final_results)/sim_num) # Gives floating point to 10 decimal places
+sim_prob <- sprintf("%.10f",sum(final_results)/sim_num)     # Gives floating point to 10 decimal places
 true_prob <- 0.001980792
 cat(sim_num," simulations resulted in probability ", sim_prob," but the exact probability is ", true_prob,".",sep = '')
+
+
 
 
 
