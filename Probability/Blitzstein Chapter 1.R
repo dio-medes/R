@@ -123,6 +123,35 @@ sim_prob <- sprintf("%.10f",sum(final_results)/sim_num)     # Gives floating poi
 true_prob <- 0.001980792
 cat(sim_num," simulations resulted in probability ", sim_prob," but the exact probability is ", true_prob,".",sep = '')
 
+### 32b: 5 card hand, probability of 2 pair ###
+
+# Calculation
+# choose(13,2)*choose(4,2)^2*44/choose(52,5) = 0.0475
+
+# Simulation
+sim_num <- 10^4
+
+# One simulation
+one_sim <- function(){
+  deck <- rep(c(1:13), each = 4) # Creating a deck with levels to make filtering easier
+  hand <- sample(deck,5,replace = FALSE)
+  
+  pair_check <- function(i){
+    v <- sum(match(hand,i),na.rm = TRUE)
+    return(v)
+  }
+  if (sum(sapply(hand, pair_check))==9){
+    check <- 1
+  } else {
+    check <- 0
+  }
+  return(check)
+}
+
+results <- replicate(sim_num,one_sim())
+sim_prob <- sprintf("%.5f",sum(results)/sim_num)
+true_prob <- 0.0475
+cat(sim_num," simulations resulted in probability ", sim_prob," but the exact probability is ", true_prob,".",sep = '')
 
 
 
