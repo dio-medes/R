@@ -587,18 +587,33 @@ ggplot(data = data.frame(x = 0), mapping = aes(x = x))+xlab('betaa')+ylab('mu')+
 
 # Now we have to find which funds are above the line, and which are below
 
-where_you_at_bitch <- function(x,y){
-if(x>y){value = "above"}else{value = "below"}
+compare_func <- function(x,y){
+if(x > y){value <- "above"}else{value <- "below"}
   return(value)
 }
 
-where_you_at_bitch_data <- as.tibble(cbind(stocks_ms_data$mu_stocks,SML(beta_stocks)))
-names(where_you_at_bitch_data) <- c('mu','sml')
-this_is_where <- as.tibble(t(apply(where_you_at_bitch_data, MARGIN = 1, FUN = where_you_at_bitch, y = where_you_at_bitch_data$sml)))
+# Option 1 - doesn't give names by default ####
+check_sml_data <- as.tibble(cbind(stocks_ms_data$mu_stocks,SML(beta_stocks)))
+names(check_sml_data) <- c("mu","sml")
+check_sml <- mapply(compare_func, check_sml_data$mu, check_sml_data$sml)
+
+# Option 2 - gives names but not very generalisable ####
+check_sml_data <- as.tibble(cbind(stocks_ms_data$mu_stocks,SML(beta_stocks)))
+names(check_sml_data) <- c('mu','sml')
+check_sml_2 <- as.tibble(t(apply(check_sml_data, MARGIN = 1, FUN = compare_func(), y = check_sml_data$sml)))
 names(this_is_where) <- names(returnsdata)
 
+# Option 3 - using multi variable apply ####
+check_sml_3 <- as.tibble(t(apply(X = check_sml_data, MARGIN = 1, FUN = function(z) compare_func(z['mu'],z['sml']))))
+names(check_sml_3) <- names(returnsdata)
 
-
+# Option 4 - using mutate and checking ####
+check_sml_4 <- check_sml_data %>% 
+  mutate(
+    test = mu-sml,
+    invest = as.factor(if_else(test > 0, "above", "below"))
+    )
+summary(check_sml_4) # 23 above, 6 below
 
 
 
