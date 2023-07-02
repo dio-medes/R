@@ -754,10 +754,11 @@ install it with the <code>remotes</code> package.</p>
 but with <code>across</code> it can be very convenient and safe to
 do.</p>
 <p>That said, I wouldn’t use the first <code>across</code> solution for
-Example 9 in an <em>‘infrastructure’</em> script because it has a lot of
-technical mess right there inside of the mutate. Instead, to deploy this
-in some infrastructure I would establish a few functions to handle that
-mess first, and then use those to make the code more reable. That is,
+Example 9 in an <em>‘infrastructure’</em> script. It has a lot of
+technical mess right there inside of the mutate, which is distracting
+for a reader only interested in the data. Instead, to deploy this in
+some infrastructure I would establish a few functions to handle that
+mess first, and then use those to make the code more readable. That is,
 first define a function somewhere earlier like:</p>
 <pre class="r"><code>extract_state &lt;- function(string) {
   str_extract(string, &quot;^[:upper:]{2,3}&quot;)
