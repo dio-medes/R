@@ -466,8 +466,8 @@ df |&gt;
 ## 3     8  15.2  192.    14</code></pre>
 <p>This example also demonstrates that using <code>across</code> doesn’t
 lock you out of using the same <code>summarise</code> or
-<code>mutate</code> call again. It is just convenient tool for applying
-a function over several columns.</p>
+<code>mutate</code> for other things at the same type. It is just
+convenient tool for applying a function over several columns!</p>
 <p>All of this simple functionality alone is very powerful, but in the
 next section I’m going to give some examples of the slightly more
 advanced functionality available with <code>across</code>, which can can
@@ -493,9 +493,12 @@ similar problems.</p>
 function</strong>:</p>
 <pre class="r"><code># Add a growth column for each existing column
 trade_data |&gt;
-  mutate(across(where(is.numeric), ~ 100 * (.x / lag(.x) - 1),
-                .names = &quot;{.col}_growth&quot;)) |&gt;
-  select(ends_with(&quot;_growth&quot;)) # just so that we can see them</code></pre>
+  mutate(
+    across(where(is.numeric),          # select the numeric columns
+           ~ 100 * (.x / lag(.x) - 1), # calcuate their growth vector
+           .names = &quot;{.col}_growth&quot;)   # name the new columns
+    ) |&gt;
+  select(ends_with(&quot;_growth&quot;))         # just so that we can see them</code></pre>
 <pre><code>## # A tibble: 37 × 4
 ##   NSW_exports_growth VIC_exports_growth NSW_imports_growth VIC_imports_growth
 ##                &lt;dbl&gt;              &lt;dbl&gt;              &lt;dbl&gt;              &lt;dbl&gt;
@@ -549,8 +552,9 @@ structure of the resulting tibble:</p>
 ## $ NSW_exports_c2growth &lt;dbl&gt; NA, -10.170110, 11.605648, -12.723221, 16.148117,…
 ## $ VIC_exports_c2growth &lt;dbl&gt; NA, 7.0906869, -13.1009375, -16.5406589, 18.04294…
 ## $ AUS_exports_c2growth &lt;dbl&gt; NA, -3.079423, -1.495290, -29.263880, 34.191063, …</code></pre>
-<p>Where we can verify that the first few contributions to growth add up
-to the total growth in <code>AUS_exports</code>.</p>
+<p>We can verify that the first few contributions to growth add up to
+the total growth in <code>AUS_exports</code>
+(e.g. <code>-10.17 + 7.09 = -3.07</code>).</p>
 <p><strong>Example 9: Make multiple new columns per existing
 column</strong>:</p>
 <pre class="r"><code># Calculate the growth and cumulative minimum columns per each existing column
@@ -668,9 +672,10 @@ you have any more than a few columns to create:</p>
     QLD_exports_minus_imports = QLD_exports - QLD_imports,
     SA_exports_minus_imports = SA_exports - SA_imports
   )</code></pre>
-<p>This is nice, but it isn’t perfect. Luckily, if you are happy to play
-around a little with <code>purrr</code>, it can make your code a bit
-more readable here too:</p>
+<p>This solution with <code>across</code> is good but it could be more
+elegant. If you are happy to play around a little with
+<code>purrr</code>, it can make your code a bit more readable, using
+<code>map2</code> instead of <code>across</code>:</p>
 <pre class="r"><code>trade_data |&gt;
   mutate(
     map2(
@@ -680,27 +685,49 @@ more readable here too:</p>
       bind_cols() |&gt;
       rename_with(~ str_c(.x, &quot;_minus_imports&quot;))
     )</code></pre>
-<p>This is fine but it’s still a bit ugly and using <code>eval</code>
-which shouldn’t be necessary. A little trickery with the original
+<p>This is better, but it’s still a bit ugly and uses <code>eval</code>
+which shouldn’t really be necessary. A little trickery with the original
 <code>magrittr</code> pipe can improve the readability further:</p>
 <pre class="r"><code>trade_data %&gt;%
   mutate(
     map2(
-      select(., ends_with(&quot;exports&quot;)),
+      select(., ends_with(&quot;exports&quot;)), 
       select(., ends_with(&quot;imports&quot;)),
       ~ .x - .y) |&gt;
       bind_cols() |&gt;
       rename_with(~ str_c(.x, &quot;_minus_imports&quot;))
-    )</code></pre>
-<p>However, the best option I know about is the <code>dplyover</code>
-package, which implements <code>across2</code>:</p>
+  )</code></pre>
+<p>I’ve also seen solutions on <a href="https://stackoverflow.com/questions/72500806">Stack Overflow</a>
+that prefer to use <code>split.default</code>. However, I think this is
+a little clunky and don’t really like the use of <code>bind_cols</code>,
+but it is still an interesting example of the use of
+<code>imap</code>.</p>
+<pre class="r"><code>trade_data %&gt;%
+  
+  # split up based on states
+  split.default(str_extract(names(.), &quot;^[:upper:]{2,3}&quot;), drop = TRUE) %&gt;%
+  
+  # exports minus imports
+  imap(~ .x[[str_c(.y, &quot;_exports&quot;)]] - .x[[str_c(.y, &quot;_imports&quot;)]]) %&gt;%
+  
+  # bind columns 
+  bind_cols() %&gt;%
+  
+  # rename columns
+  rename_with(~ str_c(.x, &quot;_exports_minus_imports&quot;)) %&gt;%
+  
+  # bind onto original data
+  bind_cols(trade_data, .)</code></pre>
+<p>The best option I know about is the <code>dplyover</code> package,
+which implements the extremely elegant <code>across2</code>:</p>
 <pre class="r"><code>library(dplyover)
 
 trade_data |&gt;
-  mutate(across2(ends_with(&quot;exports&quot;),
-                 ends_with(&quot;imports&quot;),
-                 ~ .x - .y,
-                 .names = &quot;{xcol}_minus_{ycol}&quot;))</code></pre>
+  mutate(
+    across2(ends_with(&quot;exports&quot;), ends_with(&quot;imports&quot;),
+            ~ .x - .y,
+            .names = &quot;{xcol}_minus_{ycol}&quot;)
+    )</code></pre>
 <pre><code>## Rows: 37
 ## Columns: 13
 ## $ date                          &lt;date&gt; 2020-01-01, 2020-02-01, 2020-03-01, 202…
@@ -718,7 +745,7 @@ trade_data |&gt;
 ## $ SA_exports_minus_SA_imports   &lt;dbl&gt; -15.8997702, -0.7773847, 27.8644657, 6.4…</code></pre>
 <p>At the time of writing, <code>dplyover</code> is not on CRAN. If you
 are happy to use a non-CRAN package, you can find <code>dplyover</code>
-<a href="https://timteafan.github.io/dplyover/index.html">here</a> and
+<a href="https://timteafan.github.io/dplyover/index.html">here</a>, and
 install it with the <code>remotes</code> package.</p>
 </div>
 <div id="infrastructure" class="section level2">
@@ -727,11 +754,11 @@ install it with the <code>remotes</code> package.</p>
 but with <code>across</code> it can be very convenient and safe to
 do.</p>
 <p>That said, I wouldn’t use the first <code>across</code> solution for
-Example 9 in an <em>‘infrastructure’</em> script - I’d probably use the
-<code>purrr</code> solution with <code>map2</code>, or pivot the data
-into long form if feasible. But, if you need to use this style of
-solution, I would establish a few functions first. That is, first define
-a function somewhere earlier like:</p>
+Example 9 in an <em>‘infrastructure’</em> script because it has a lot of
+technical mess right there inside of the mutate. Instead, to deploy this
+in some infrastructure I would establish a few functions to handle that
+mess first, and then use those to make the code more reable. That is,
+first define a function somewhere earlier like:</p>
 <pre class="r"><code>extract_state &lt;- function(string) {
   str_extract(string, &quot;^[:upper:]{2,3}&quot;)
 }</code></pre>
@@ -745,11 +772,20 @@ purpose but doesn’t seem to work here reliably yet).</p>
 <p>With these functions established, you could have the following in the
 analysis part of the infrastructure:</p>
 <pre class="r"><code>trade_data |&gt;
-  mutate(across(
+  mutate(
+    across(
+    
+    # across the export columns
     ends_with(&quot;_exports&quot;),
+    
+    # subtract imports
     ~ .x - get_state_var(extract_state(cur_column()), &quot;_imports&quot;),
+    
+    # name new columns exports_minus_imports
     .names = &quot;{.col}_minus_imports&quot;
-  ))</code></pre>
+    
+  )
+)</code></pre>
 <pre><code>## Rows: 37
 ## Columns: 13
 ## $ date                      &lt;date&gt; 2020-01-01, 2020-02-01, 2020-03-01, 2020-04…
@@ -765,11 +801,9 @@ analysis part of the infrastructure:</p>
 ## $ VIC_exports_minus_imports &lt;dbl&gt; -24.4463126, 43.6614781, 56.2883801, 5.15175…
 ## $ QLD_exports_minus_imports &lt;dbl&gt; -2.6290533, -12.0726453, -8.5808992, -34.073…
 ## $ SA_exports_minus_imports  &lt;dbl&gt; -15.8997702, -0.7773847, 27.8644657, 6.46861…</code></pre>
-<p>which is a bit easier to read, and demonstrates how everyday code can
-be modified slightly to improve its readability and resilience. If the
-very nice <code>across2</code> were to be incorporated into
-<code>dplyr</code> in the future, that would be the best solution of
-all.</p>
+<p>This kind of set up would also generalise easily to other potential
+columns (e.g. <code>NSW_income</code>), whereas the manual way demands
+yet more typing and opportunities for mistakes.</p>
 </div>
 </div>
 

@@ -1086,8 +1086,8 @@ structure(list(cyl = c(4, 6, 8), mpg = c(26, 19.7, 15.2), hp = c(91,
 ```
 
 This example also demonstrates that using `across` doesn't lock you out of
-using the same `summarise` or `mutate` call again. It is just convenient
-tool for applying a function over several columns.
+using the same `summarise` or `mutate` for other things at the same type.
+It is just convenient tool for applying a function over several columns!
 
 All of this simple functionality alone is very powerful, but in the next
 section I'm going to give some examples of the slightly more
@@ -1108,9 +1108,12 @@ print(trade_data_1, n = 5)
 ```{r, eval = FALSE}
 # Add a growth column for each existing column
 trade_data |>
-  mutate(across(where(is.numeric), ~ 100 * (.x / lag(.x) - 1),
-                .names = "{.col}_growth")) |>
-  select(ends_with("_growth")) # just so that we can see them
+  mutate(
+    across(where(is.numeric),          # select the numeric columns
+           ~ 100 * (.x / lag(.x) - 1), # calcuate their growth vector
+           .names = "{.col}_growth")   # name the new columns
+    ) |>
+  select(ends_with("_growth"))         # just so that we can see them
 ```
 ```{r, echo = FALSE}
 print(example_6, n = 5)
@@ -1157,8 +1160,8 @@ resulting tibble:
 glimpse(example_7)
 ```
 
-Where we can verify that the first few contributions to growth add up to the
-total growth in `AUS_exports`.
+We can verify that the first few contributions to growth add up to the
+total growth in `AUS_exports` (e.g. `-10.17 + 7.09 = -3.07`).
 
 **Example 9: Make multiple new columns per existing column**:
 
@@ -1249,9 +1252,9 @@ trade_data |>
   )
 ```
 
-This is nice, but it isn't perfect. Luckily, if you are happy to play 
-around a little with `purrr`, it can make your code a bit more readable
-here too:
+This solution with `across` is good but it could be more elegant. If you
+are happy to play around a little with `purrr`, it can make your code a
+bit more readable, using `map2` instead of `across`:
 
 ```{r, eval = FALSE}
 trade_data |>
@@ -1265,39 +1268,67 @@ trade_data |>
     )
 ```
 
-This is fine but it's still a bit ugly and using `eval` which shouldn't be
-necessary. A little trickery with the original `magrittr` pipe can improve the readability further:
+This is better, but it's still a bit ugly and uses `eval` which shouldn't
+really be necessary. A little trickery with the original `magrittr` pipe
+can improve the readability further:
 
 ```{r, eval = FALSE}
 trade_data %>%
   mutate(
     map2(
-      select(., ends_with("exports")),
+      select(., ends_with("exports")), 
       select(., ends_with("imports")),
       ~ .x - .y) |>
       bind_cols() |>
       rename_with(~ str_c(.x, "_minus_imports"))
-    )
+  )
 ```
 
-However, the best option I know about is the `dplyover` package, which
-implements `across2`:
+I've also seen solutions on 
+[Stack Overflow](https://stackoverflow.com/questions/72500806) 
+that prefer to use `split.default`. However, I think this is a little
+clunky and don't really like the use of `bind_cols`, but it is still
+an interesting example of the use of `imap`.
+
+```{r, eval = FALSE}
+trade_data %>%
+  
+  # split up based on states
+  split.default(str_extract(names(.), "^[:upper:]{2,3}"), drop = TRUE) %>%
+  
+  # exports minus imports
+  imap(~ .x[[str_c(.y, "_exports")]] - .x[[str_c(.y, "_imports")]]) %>%
+  
+  # bind columns 
+  bind_cols() %>%
+  
+  # rename columns
+  rename_with(~ str_c(.x, "_exports_minus_imports")) %>%
+  
+  # bind onto original data
+  bind_cols(trade_data, .)
+```
+
+The best option I know about is the `dplyover` package, which
+implements the extremely elegant `across2`:
 
 ```{r, eval = FALSE}
 library(dplyover)
 
 trade_data |>
-  mutate(across2(ends_with("exports"),
-                 ends_with("imports"),
-                 ~ .x - .y,
-                 .names = "{xcol}_minus_{ycol}"))
+  mutate(
+    across2(ends_with("exports"), ends_with("imports"),
+            ~ .x - .y,
+            .names = "{xcol}_minus_{ycol}")
+    )
 ```
 ```{r, echo = FALSE}
 glimpse(example_dplyover)
 ```
 
-At the time of writing, `dplyover` is not on CRAN. If you are happy to use a non-CRAN package, you can find `dplyover` 
-[here](https://timteafan.github.io/dplyover/index.html) and install it with
+At the time of writing, `dplyover` is not on CRAN. If you are happy to use
+a non-CRAN package, you can find `dplyover` 
+[here](https://timteafan.github.io/dplyover/index.html), and install it with
 the `remotes` package.
 
 ## Infrastructure
@@ -1306,10 +1337,11 @@ Working with wide data isn't always the easiest or most efficient, but with
 `across` it can be very convenient and safe to do. 
 
 That said, I wouldn't use the first `across` solution for Example 9 in an
-*'infrastructure'* script - I'd probably use the `purrr` solution with `map2`,
-or pivot the data into long form if feasible. But, if you need to use this
-style of solution, I would establish a few functions first. That is,
-first define a function somewhere earlier like:
+*'infrastructure'* script because it has a lot of technical mess right there
+inside of the mutate. Instead, to deploy this in some infrastructure
+I would establish a few functions to handle that mess first, and then
+use those to make the code more reable. That is, first define a function
+somewhere earlier like:
 
 ```{r, eval = FALSE}
 extract_state <- function(string) {
@@ -1333,17 +1365,25 @@ analysis part of the infrastructure:
 
 ```{r, eval = FALSE}
 trade_data |>
-  mutate(across(
+  mutate(
+    across(
+    
+    # across the export columns
     ends_with("_exports"),
+    
+    # subtract imports
     ~ .x - get_state_var(extract_state(cur_column()), "_imports"),
+    
+    # name new columns exports_minus_imports
     .names = "{.col}_minus_imports"
-  ))
+    
+  )
+)
 ```
 ```{r, echo = FALSE}
 glimpse(example_9)
 ```
 
-which is a bit easier to read, and demonstrates how everyday
-code can be modified slightly to improve its readability and resilience. 
-If the very nice `across2` were to be incorporated into `dplyr` in the future,
-that would be the best solution of all.
+This kind of set up would also generalise easily
+to other potential columns (e.g. `NSW_income`), whereas the manual way
+demands yet more typing and opportunities for mistakes.
